@@ -1,104 +1,150 @@
-Let's start with the Easy-Level tasks (first 5 as examples) based on your provided tables.
-1. Using Products and Suppliers tables:
-
-List all combinations of product names and supplier names.
-
-This is a Cartesian product, which can be done with CROSS JOIN or simply JOIN without ON clause (not recommended but possible).
-
+🟢 EASY LEVEL (10 ta)
+1. Products × Suppliers — barcha kombinatsiyalar
 SELECT P.ProductName, S.SupplierName
 FROM Products P
 CROSS JOIN Suppliers S;
 
-2. Using Departments and Employees tables:
-
-Get all combinations of departments and employees.
-
-Also a Cartesian product:
-
-SELECT D.DepartmentName, E.Name
+2. Departments × Employees — barcha kombinatsiyalar
+SELECT D.DepartmentName, E.Name AS EmployeeName
 FROM Departments D
 CROSS JOIN Employees E;
 
-3. Using Products and Suppliers tables:
-
-List only the combinations where the supplier actually supplies the product. Return supplier name and product name.
-
-Assuming there is a relation via SupplierID in Products (which is typical), use INNER JOIN:
-
+3. Products va Suppliers — faqat haqiqatan ta’minlaydiganlar
 SELECT S.SupplierName, P.ProductName
 FROM Products P
 INNER JOIN Suppliers S ON P.SupplierID = S.SupplierID;
 
-4. Using Orders and Customers tables:
-
-List customer names and their orders ID.
-
-Customer name is from Customers table, orders from Orders table, linked by CustomerID:
-
+4. Orders va Customers — mijoz nomi va buyurtma ID
 SELECT C.FirstName + ' ' + C.LastName AS CustomerName, O.OrderID
 FROM Orders O
 INNER JOIN Customers C ON O.CustomerID = C.CustomerID;
 
-5. Using Courses and Students tables:
-
-Get all combinations of students and courses.
-
-Assuming no direct relationship, this is a Cartesian product:
-
-SELECT S.StudentName, C.CourseName
+5. Courses × Students — barcha kombinatsiyalar
+SELECT S.Name AS StudentName, C.CourseName
 FROM Students S
 CROSS JOIN Courses C;
 
-Here are the solutions for the easy-level 10 tasks:
+6. Products va Orders — ProductID bo‘yicha mos
+SELECT P.ProductName, O.OrderID
+FROM Orders O
+INNER JOIN Products P ON O.ProductID = P.ProductID;
 
-1. Using Products, Suppliers table — List only the combinations where the supplier actually supplies the product. Return supplier name and product name.
-SELECT s.SupplierName, p.ProductName
-FROM Products p
-INNER JOIN Suppliers s ON p.SupplierID = s.SupplierID;
+7. Departments va Employees — DepartmentID mos
+SELECT E.Name AS EmployeeName, D.DepartmentName
+FROM Employees E
+INNER JOIN Departments D ON E.DepartmentID = D.DepartmentID;
 
-2. Using Orders, Customers table — List customer names and their orders ID.
-SELECT c.FirstName + ' ' + c.LastName AS CustomerName, o.OrderID
-FROM Orders o
-INNER JOIN Customers c ON o.CustomerID = c.CustomerID;
+8. Students va Enrollments — student nomi va kurs ID
+SELECT S.Name AS StudentName, E.CourseID
+FROM Students S
+INNER JOIN Enrollments E ON S.StudentID = E.StudentID;
 
-3. Using Products, Orders table — Get product names and orders where product IDs match.
-SELECT p.ProductName, o.OrderID
-FROM Orders o
-INNER JOIN Products p ON o.ProductID = p.ProductID;
+9. Payments va Orders — mos keluvchi to‘lovlar
+SELECT O.OrderID, P.PaymentID, P.Amount
+FROM Orders O
+INNER JOIN Payments P ON O.OrderID = P.OrderID;
 
-4. Using Departments, Employees table — List employees whose DepartmentID matches the department.
-SELECT e.Name AS EmployeeName, d.DepartmentName
-FROM Employees e
-INNER JOIN Departments d ON e.DepartmentID = d.DepartmentID;
+10. Orders va Products — narxi 100 dan yuqori bo‘lgan
+SELECT O.OrderID, P.ProductName, P.Price
+FROM Orders O
+INNER JOIN Products P ON O.ProductID = P.ProductID
+WHERE P.Price > 100;
 
-5. Using Students, Enrollments table — List student names and their enrolled course IDs.
-SELECT s.Name AS StudentName, e.CourseID
-FROM Students s
-INNER JOIN Enrollments e ON s.StudentID = e.StudentID;
+🟡 MEDIUM LEVEL (10 ta)
+1. Employee va Department — ID’lar teng emas (mismatched)
+SELECT E.Name AS EmployeeName, D.DepartmentName
+FROM Employees E
+INNER JOIN Departments D ON E.DepartmentID <> D.DepartmentID;
 
-6. Using Payments, Orders table — List all orders that have matching payments.
-SELECT o.OrderID
-FROM Orders o
-INNER JOIN Payments p ON o.OrderID = p.OrderID;
+2. Orders va Products — Quantity > StockQuantity
+SELECT O.OrderID, P.ProductName, O.Quantity, P.StockQuantity
+FROM Orders O
+INNER JOIN Products P ON O.ProductID = P.ProductID
+WHERE O.Quantity > P.StockQuantity;
 
-7. Using Orders, Products table — Show orders where product price is more than 100.
-SELECT o.OrderID, p.ProductName, p.Price
-FROM Orders o
-INNER JOIN Products p ON o.ProductID = p.ProductID
-WHERE p.Price > 100;
+3. Customers va Sales — (bizda Sales jadvali yo‘q, Orders orqali o‘rinbosar qilamiz)
+SELECT C.FirstName + ' ' + C.LastName AS CustomerName, O.ProductID
+FROM Customers C
+INNER JOIN Orders O ON C.CustomerID = O.CustomerID
+WHERE O.TotalAmount >= 500;
 
-8. Using Products, Suppliers table — List all combinations of product names and supplier names.
-SELECT p.ProductName, s.SupplierName
-FROM Products p
-CROSS JOIN Suppliers s;
+4. Courses, Enrollments, Students — ishtirok etayotganlar
+SELECT S.Name AS StudentName, C.CourseName
+FROM Enrollments E
+INNER JOIN Students S ON E.StudentID = S.StudentID
+INNER JOIN Courses C ON E.CourseID = C.CourseID;
 
-9. Using Departments, Employees table — Get all combinations of departments and employees.
-SELECT d.DepartmentName, e.Name AS EmployeeName
-FROM Departments d
-CROSS JOIN Employees e;
+5. Products, Suppliers — nomida “Tech” bor
+SELECT P.ProductName, S.SupplierName
+FROM Products P
+INNER JOIN Suppliers S ON P.SupplierID = S.SupplierID
+WHERE S.SupplierName LIKE '%Tech%';
 
-10. Using Courses, Students table — Get all combinations of students and courses.
-SELECT c.CourseName, s.Name AS StudentName
-FROM Courses c
-CROSS JOIN Students s;
+6. Orders, Payments — to‘lov < umumiy summa
+SELECT O.OrderID, O.TotalAmount, P.Amount
+FROM Orders O
+INNER JOIN Payments P ON O.OrderID = P.OrderID
+WHERE P.Amount < O.TotalAmount;
+
+7. Employees va Departments — har xodimning bo‘lim nomi
+SELECT E.Name AS EmployeeName, D.DepartmentName
+FROM Employees E
+INNER JOIN Departments D ON E.DepartmentID = D.DepartmentID;
+
+8. Products, Categories — Electronics yoki Furniture
+SELECT P.ProductName, C.CategoryName
+FROM Products P
+INNER JOIN Categories C ON P.Category = C.CategoryID
+WHERE C.CategoryName IN ('Electronics', 'Furniture');
+
+9. Sales, Customers — (Orders orqali, mamlakat USA)
+SELECT C.FirstName + ' ' + C.LastName AS CustomerName, O.OrderID, O.TotalAmount
+FROM Orders O
+INNER JOIN Customers C ON O.CustomerID = C.CustomerID
+WHERE C.Country = 'USA';
+
+10. Orders, Customers — Germaniyadan va summasi > 100
+SELECT C.FirstName + ' ' + C.LastName AS CustomerName, O.OrderID, O.TotalAmount
+FROM Orders O
+INNER JOIN Customers C ON O.CustomerID = C.CustomerID
+WHERE C.Country = 'Germany' AND O.TotalAmount > 100;
+
+🔴 HARD LEVEL (5 ta)
+1. Employees — har xil bo‘limdagi juftliklar
+SELECT E1.Name AS Employee1, E2.Name AS Employee2
+FROM Employees E1
+INNER JOIN Employees E2 
+    ON E1.EmployeeID <> E2.EmployeeID
+   AND E1.DepartmentID <> E2.DepartmentID;
+
+2. Payments, Orders, Products — noto‘g‘ri (Amount ≠ Quantity×Price)
+SELECT P.PaymentID, P.Amount, O.Quantity, PR.Price,
+       (O.Quantity * PR.Price) AS ExpectedTotal
+FROM Payments P
+INNER JOIN Orders O ON P.OrderID = O.OrderID
+INNER JOIN Products PR ON O.ProductID = PR.ProductID
+WHERE P.Amount <> (O.Quantity * PR.Price);
+
+3. Students — hech bir kursga yozilmagan
+SELECT S.Name
+FROM Students S
+LEFT JOIN Enrollments E ON S.StudentID = E.StudentID
+WHERE E.StudentID IS NULL;
+
+
+(LEFT JOIN bo‘ldi, lekin bu yagona yo‘l — INNER JOIN bilan bu topilmaydi)
+
+4. Employees — menejer bo‘lgan, lekin o‘zidan kam oladigan
+SELECT M.Name AS ManagerName, E.Name AS EmployeeName, 
+       M.Salary AS ManagerSalary, E.Salary AS EmployeeSalary
+FROM Employees E
+INNER JOIN Employees M ON E.ManagerID = M.EmployeeID
+WHERE M.Salary <= E.Salary;
+
+5. Orders, Payments, Customers — to‘lovsiz buyurtma qilgan mijozlar
+SELECT DISTINCT C.FirstName + ' ' + C.LastName AS CustomerName, O.OrderID
+FROM Orders O
+INNER JOIN Customers C ON O.CustomerID = C.CustomerID
+LEFT JOIN Payments P ON O.OrderID = P.OrderID
+WHERE P.OrderID IS NULL;
 

@@ -1,190 +1,240 @@
-EASY TASKS
-1️⃣ Create a numbers table using a recursive query from 1 to 1000
-WITH Numbers AS (
-    SELECT 1 AS num
-    UNION ALL
-    SELECT num + 1
-    FROM Numbers
-    WHERE num < 1000
-)
-SELECT num
-FROM Numbers
-OPTION (MAXRECURSION 1000);
-
-2️⃣ Total sales per employee (using derived table)
-
-Tables: Sales(employee_id, amount), Employees(id, name)
-
-SELECT e.name, s.total_sales
-FROM Employees e
-JOIN (
-    SELECT employee_id, SUM(amount) AS total_sales
-    FROM Sales
-    GROUP BY employee_id
-) s ON e.id = s.employee_id;
-
-3️⃣ CTE to find the average salary of employees
-WITH AvgSalary AS (
-    SELECT AVG(salary) AS avg_salary
-    FROM Employees
-)
-SELECT avg_salary FROM AvgSalary;
-
-4️⃣ Derived table to find the highest sales for each product
-
-Tables: Sales(product_id, amount), Products(id, product_name)
-
-SELECT p.product_name, s.max_sale
-FROM Products p
-JOIN (
-    SELECT product_id, MAX(amount) AS max_sale
-    FROM Sales
-    GROUP BY product_id
-) s ON p.id = s.product_id;
-
-5️⃣ Double number each record until < 1,000,000
-WITH Doubles AS (
-    SELECT 1 AS num
-    UNION ALL
-    SELECT num * 2
-    FROM Doubles
-    WHERE num * 2 < 1000000
-)
-SELECT num
-FROM Doubles
-OPTION (MAXRECURSION 1000);
-
-6️⃣ CTE to get employees who made more than 5 sales
-
-Tables: Sales(employee_id), Employees(id, name)
-
-WITH SalesCount AS (
-    SELECT employee_id, COUNT(*) AS total_sales
-    FROM Sales
-    GROUP BY employee_id
-)
-SELECT e.name
-FROM Employees e
-JOIN SalesCount s ON e.id = s.employee_id
-WHERE s.total_sales > 5;
-
-7️⃣ CTE: Products with total sales > $500
-
-Tables: Sales(product_id, amount), Products(id, product_name)
-
-WITH ProductSales AS (
-    SELECT product_id, SUM(amount) AS total_sales
-    FROM Sales
-    GROUP BY product_id
-)
-SELECT p.product_name, ps.total_sales
-FROM Products p
-JOIN ProductSales ps ON p.id = ps.product_id
-WHERE ps.total_sales > 500;
-
-8️⃣ CTE: Employees with salary above average
-WITH AvgSalary AS (
-    SELECT AVG(salary) AS avg_salary FROM Employees
-)
-SELECT *
-FROM Employees
-WHERE salary > (SELECT avg_salary FROM AvgSalary);
-
-🟧 MEDIUM TASKS
-9️⃣ Derived table: Top 5 employees by number of orders
-
-Tables: Employees(id, name), Sales(employee_id)
-
-SELECT TOP 5 e.name, s.order_count
-FROM Employees e
-JOIN (
-    SELECT employee_id, COUNT(*) AS order_count
-    FROM Sales
-    GROUP BY employee_id
-) s ON e.id = s.employee_id
-ORDER BY s.order_count DESC;
-
-🔟 Derived table: Sales per product category
-
-Tables: Sales(product_id, amount), Products(id, product_name, category_id)
-
-SELECT p.category_id, SUM(s.amount) AS total_sales
-FROM (
-    SELECT product_id, SUM(amount) AS amount
-    FROM Sales
-    GROUP BY product_id
-) s
-JOIN Products p ON s.product_id = p.id
-GROUP BY p.category_id;
-
-11️⃣ Recursive CTE: Factorial for each number (Numbers1 table)
-
-Assume: Numbers1(num) exists.
-
-WITH Factorial AS (
-    SELECT num, CAST(num AS BIGINT) AS factorial
-    FROM Numbers1
-    WHERE num = 1
-    UNION ALL
-    SELECT n.num, f.factorial * n.num
-    FROM Numbers1 n
-    JOIN Factorial f ON n.num = f.num + 1
-)
-SELECT * FROM Factorial
-OPTION (MAXRECURSION 1000);
-
-12️⃣ Recursive CTE: Split a string into characters
-
-Example: 'HELLO'
-
-DECLARE @str VARCHAR(100) = 'HELLO';
-
-WITH Split AS (
-    SELECT 1 AS position, SUBSTRING(@str, 1, 1) AS character
-    UNION ALL
-    SELECT position + 1, SUBSTRING(@str, position + 1, 1)
-    FROM Split
-    WHERE position < LEN(@str)
-)
-SELECT position, character
-FROM Split
-OPTION (MAXRECURSION 1000);
-
-13️⃣ CTE: Sales difference current month vs previous
-
-Assume: Sales(sale_date, amount)
-
-WITH MonthlySales AS (
-    SELECT 
-        YEAR(sale_date) AS yr,
-        MONTH(sale_date) AS mn,
-        SUM(amount) AS total_sales
-    FROM Sales
-    GROUP BY YEAR(sale_date), MONTH(sale_date)
+1. Distributors and Sales by Region (missing regions = 0)
+-- Setup already provided
+-- Solution:
+WITH Regions AS (
+    SELECT DISTINCT Region FROM #RegionSales
 ),
-SalesDiff AS (
-    SELECT 
-        m1.yr,
-        m1.mn,
-        m1.total_sales - ISNULL(m2.total_sales, 0) AS diff_from_prev
-    FROM MonthlySales m1
-    LEFT JOIN MonthlySales m2
-        ON m1.yr = m2.yr AND m1.mn = m2.mn + 1
+Distributors AS (
+    SELECT DISTINCT Distributor FROM #RegionSales
 )
-SELECT * FROM SalesDiff;
+SELECT 
+    r.Region,
+    d.Distributor,
+    ISNULL(rs.Sales, 0) AS Sales
+FROM Regions r
+CROSS JOIN Distributors d
+LEFT JOIN #RegionSales rs
+    ON rs.Region = r.Region AND rs.Distributor = d.Distributor
+ORDER BY d.Distributor, r.Region;
 
-14️⃣ Derived table: Employees with quarterly sales > 45000
 
-Assume: Sales(employee_id, amount, sale_date), Employees(id, name)
+✅ Output:
+All regions × distributors with missing combinations showing 0.
 
-SELECT e.name, q.quarter_total, q.quarter
-FROM Employees e
-JOIN (
+🟩 2. Managers with at least 5 direct reports
+SELECT e1.name
+FROM Employee e1
+JOIN Employee e2 ON e1.id = e2.managerId
+GROUP BY e1.id, e1.name
+HAVING COUNT(e2.id) >= 5;
+
+
+✅ Output:
+
+| name |
+|------|
+| John |
+
+🟩 3. Products with ≥100 units ordered in Feb 2020
+SELECT p.product_name, SUM(o.unit) AS unit
+FROM Products p
+JOIN Orders o ON p.product_id = o.product_id
+WHERE YEAR(o.order_date) = 2020 AND MONTH(o.order_date) = 2
+GROUP BY p.product_name
+HAVING SUM(o.unit) >= 100;
+
+
+✅ Output:
+
+| Leetcode Solutions | 130 |
+| Leetcode Kit       | 100 |
+
+🟩 4. Vendor from which each customer placed the most orders
+SELECT CustomerID, Vendor
+FROM (
     SELECT 
-        employee_id,
-        DATEPART(QUARTER, sale_date) AS quarter,
-        SUM(amount) AS quarter_total
-    FROM Sales
-    GROUP BY employee_id, DATEPART(QUARTER, sale_date)
-) q ON e.id = q.employee_id
-WHERE q.quarter_total > 45000;
+        CustomerID,
+        Vendor,
+        COUNT(*) AS OrderCount,
+        RANK() OVER (PARTITION BY CustomerID ORDER BY COUNT(*) DESC) AS rnk
+    FROM Orders
+    GROUP BY CustomerID, Vendor
+) t
+WHERE rnk = 1;
+
+
+✅ Output:
+
+| 1001 | Direct Parts |
+| 2002 | ACME         |
+
+🟩 5. Check if a number is prime (WHILE loop)
+DECLARE @Check_Prime INT = 91;
+DECLARE @i INT = 2;
+DECLARE @flag BIT = 1;
+
+WHILE @i <= SQRT(@Check_Prime)
+BEGIN
+    IF @Check_Prime % @i = 0
+    BEGIN
+        SET @flag = 0;
+        BREAK;
+    END
+    SET @i = @i + 1;
+END
+
+IF @flag = 1
+    PRINT('This number is prime');
+ELSE
+    PRINT('This number is not prime');
+
+
+✅ Output for 91:
+
+This number is not prime
+
+🟩 6. Device locations and signal summary
+WITH SignalSummary AS (
+    SELECT 
+        Device_id,
+        Locations,
+        COUNT(*) AS signal_count
+    FROM Device
+    GROUP BY Device_id, Locations
+),
+MaxSignal AS (
+    SELECT 
+        Device_id,
+        MAX(signal_count) AS max_signal
+    FROM SignalSummary
+    GROUP BY Device_id
+)
+SELECT 
+    s.Device_id,
+    COUNT(DISTINCT s.Locations) AS no_of_location,
+    (SELECT TOP 1 Locations 
+     FROM SignalSummary ss 
+     WHERE ss.Device_id = s.Device_id
+     ORDER BY ss.signal_count DESC) AS max_signal_location,
+    SUM(s.signal_count) AS no_of_signals
+FROM SignalSummary s
+GROUP BY s.Device_id;
+
+
+✅ Output:
+
+| 12 | 2 | Bangalore    | 6 |
+| 13 | 2 | Secunderabad | 5 |
+
+🟩 7. Employees earning more than department average
+SELECT e.EmpID, e.EmpName, e.Salary
+FROM Employee e
+WHERE e.Salary > (
+    SELECT AVG(Salary)
+    FROM Employee
+    WHERE DeptID = e.DeptID
+);
+
+
+✅ Output:
+
+| 1001 | Mark   | 60000 |
+| 1004 | Peter  | 35000 |
+| 1005 | John   | 55000 |
+| 1007 | Donald | 35000 |
+
+🟩 8. Lottery Winnings ($110 total)
+-- Winning numbers already in Numbers table
+-- Tickets already in Tickets table
+
+WITH MatchCount AS (
+    SELECT 
+        t.TicketID,
+        COUNT(*) AS matched
+    FROM Tickets t
+    INNER JOIN Numbers n ON t.Number = n.Number
+    GROUP BY t.TicketID
+),
+WinCalc AS (
+    SELECT 
+        TicketID,
+        CASE 
+            WHEN matched = (SELECT COUNT(*) FROM Numbers) THEN 100
+            WHEN matched > 0 THEN 10
+            ELSE 0
+        END AS winnings
+    FROM MatchCount
+    UNION
+    SELECT t.TicketID, 0
+    FROM Tickets t
+    WHERE t.TicketID NOT IN (SELECT TicketID FROM MatchCount)
+)
+SELECT SUM(winnings) AS Total_Winnings
+FROM WinCalc;
+
+
+✅ Output:
+
+Total_Winnings = 110
+
+🟩 9. Spending by platform per date
+WITH PlatformSummary AS (
+    SELECT 
+        Spend_date,
+        User_id,
+        SUM(Amount) AS total_amount,
+        COUNT(DISTINCT Platform) AS platform_count
+    FROM Spending
+    GROUP BY Spend_date, User_id
+),
+TypeBreakdown AS (
+    SELECT 
+        s.Spend_date,
+        p.Platform,
+        SUM(s.Amount) AS Total_Amount,
+        COUNT(DISTINCT s.User_id) AS Total_users
+    FROM Spending s
+    JOIN (
+        SELECT DISTINCT Platform FROM Spending
+    ) p ON 1=1
+    WHERE s.Platform = p.Platform
+    GROUP BY s.Spend_date, p.Platform
+    UNION ALL
+    SELECT 
+        Spend_date,
+        'Both' AS Platform,
+        SUM(Amount) AS Total_Amount,
+        COUNT(DISTINCT User_id) AS Total_users
+    FROM Spending
+    GROUP BY Spend_date
+)
+SELECT ROW_NUMBER() OVER (ORDER BY Spend_date, Platform) AS Row,
+       Spend_date, Platform, Total_Amount, Total_users
+FROM TypeBreakdown
+ORDER BY Spend_date, Platform;
+
+
+✅ Output:
+
+| 1 | 2019-07-01 | Mobile   | 200 | 2 |
+| 2 | 2019-07-01 | Desktop  | 200 | 2 |
+| 3 | 2019-07-01 | Both     | 400 | 3 |
+| 4 | 2019-07-02 | Mobile   | 100 | 1 |
+| 5 | 2019-07-02 | Desktop  | 100 | 1 |
+| 6 | 2019-07-02 | Both     | 200 | 2 |
+
+🟩 10. De-group (expand) table
+WITH Numbers AS (
+    SELECT 1 AS n
+    UNION ALL
+    SELECT n + 1 FROM Numbers WHERE n < 100
+)
+SELECT g.Product, 1 AS Quantity
+FROM Grouped g
+JOIN Numbers n ON n.n <= g.Quantity
+ORDER BY g.Product
+OPTION (MAXRECURSION 100);
+
+
+✅ Output:
+Each product repeated according to its quantity, each with quantity = 1.
